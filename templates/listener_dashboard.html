@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Listener Dashboard</title>
+</head>
+<body>
+    <h1>Active Listeners</h1>
+    <div id="listeners"></div>
+
+    <script>
+        // Fetch active listeners from the server
+        fetch('http://localhost:22885/listeners')
+        .then(response => response.json())
+        .then(data => {
+            const listenersDiv = document.getElementById('listeners');
+            
+            data.active_listeners.forEach(listener => {
+                const listenerDiv = document.createElement('div');
+                
+                listenerDiv.innerHTML = `<a href="listener-details.html?id=${listener.id}">${listener.name}</a>`;
+                listenersDiv.appendChild(listenerDiv);
+            });
+        });
+    </script>
+</body>
+</html>
