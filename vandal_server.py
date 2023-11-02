@@ -3,6 +3,7 @@ from flask import Flask, abort, jsonify, render_template, request, json
 from pymongo import MongoClient
 from kernel.__utilities import *
 from kernel.__database import *
+from kernel.__sockets import *
 import logging,datetime,sys
 
 GLOBAL_SECRET_KEY = SECRET_KEY
@@ -68,20 +69,6 @@ def internal_heartbeat():
             }
         )
 
-
-        # active_agents.update_one(
-        #     {"agent_id": agent_id}, 
-        #     {
-        #         "$set": {"sleep_time": sleep_time}
-        #     }
-        # )
-
-        # if result.modified_count == 1:
-        #     return jsonify({"message": "[+] Agent checked in"}), 200
-        # else:
-        #     return jsonify({"message": "Agent ID not found"}), 404
-
-
         return jsonify({"message": "[+] Agent checked in"}), 200
 
     else:
@@ -130,7 +117,7 @@ def add_job():
     return jsonify({"message": ""})
 
 
-# Eventually the port/debug/ssl context will all be passed via cmd line
-# With these being the default values
 if __name__ == '__main__':
-    app.run(port=PORT, debug=True, ssl_context=(CERT_PATH, KEY_PATH))
+    app.run(port=PORT, debug=True)
+
+

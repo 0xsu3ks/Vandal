@@ -4,6 +4,7 @@ from prettytable import PrettyTable, ALL
 from flask import Flask,app
 from .__database import *
 from .__utilities import generate_listener_id, is_port_in_use
+from vandal_settings import CERT_PATH, KEY_PATH
 
 # The colorama thing
 init(autoreset=True)
@@ -72,11 +73,11 @@ class Listener:
         
         os.environ['WERKZEUG_RUN_MAIN'] = 'true'
         # Again values here would be need to be updated to use server args
-        app.run(host='0.0.0.0', port=self.port, threaded=True, use_reloader=False, ssl_context=('cert.pem', 'key.pem'))
+        app.run(host='0.0.0.0', port=self.port, threaded=True, use_reloader=False)
 
 def stop_http_listener(port):
     try:
-        requests.post(f'https://localhost:{port}/shutdown', verify=False)
+        requests.post(f'http://localhost:{port}/shutdown', verify=False)
         print(f"Listener on port {port} stopped successfully!")
         active_listeners.update_one({"port": port}, {"$set": {"state": "inactive"}})
 
