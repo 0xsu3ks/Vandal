@@ -16,6 +16,9 @@ As mentioned Vandal can be built upon to have features and functionality added. 
   + File upload and download
   + SOCKS5 support
   + More Agent control
+  + Payload Generation
+      + Python
+      + EXE
 
 Some items that are a work in progress but are not completed yet:
   + AES Encryption
