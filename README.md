@@ -8,7 +8,7 @@ At it's core the "Vandal Server Application" runs locally on a server, and all "
 
 With Vandal, the entire C2 platform is open source. That is all the code for the server and backend functionality is there for you to use and spin up infrastructure. What is not open source is the implants or agents. These need to be developed by penetration testers. A wiki will be available that walks through building an implant in Python.
 
-## Version 0.2 - Zephyr
+## Version 0.2 - Zephyr (Public)
 As mentioned Vandal can be built upon to have features and functionality added. As of this release Vandal supports:
   + Basic C2 channel communication via HTTPS (command execution)
   + Generate listeners
@@ -27,5 +27,12 @@ Some items that are a work in progress but are not completed yet:
   + DNS Handler
   + Automated CDN generation
 
+
+## Currently in develpoment:
++ Version 0.3
+    + AES Encryption completed
+    + PowerShell execution completed
+    + Custom shellcode payload completed (private)
+
 ## Disclaimer:
-This is a personal project that I created to understand at a deeper level how C2's work. From here I used it as a pivot to learn how to code implants from scratch utilzing the C2 I built. This made things a lot easier to understand for me. It is an ongoing project and currently in it's infantry stage.
+This is a personal project that I created to understand at a deeper level how C2's work. From here I used it as a pivot to learn how to code implants from scratch utilzing the C2 I built. This made things a lot easier to understand for me. It is an ongoing project and currently in it's beginning stages.
